@@ -23,6 +23,8 @@ This repository contains a Node.js/Express.js version of the counter service for
 - `PUT /counters/:name` - Increment a counter
 - `DELETE /counters/:name` - Delete a counter
 
+## Github URL
+https://github.com/Nezha99-8/ci-cd-final-project.git
 ## Setup
 
 1. **Install dependencies:**
