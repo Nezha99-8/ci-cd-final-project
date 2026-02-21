@@ -1,0 +1,24 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: cd-pipeline-run-1
+spec:
+  pipelineRef:
+    name: cd-pipeline
+  params:
+    - name: repo-url
+      value: "https://github.com/Nezha99-8/ci-cd-final-project"
+    - name: branch
+      value: "main"
+    - name: app-name
+      value: "my-app"
+    - name: build-image
+      value: "python:3.9-slim"
+  
+  workspaces:
+    - name: output
+      persistentVolumeClaim:
+        claimName: oc-lab-pvc
+  
+  serviceAccountName: pipeline

@@ -1,0 +1,101 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: cd-pipeline
+spec:
+  params:
+    - name: repo-url
+      description: The git repository URL
+      type: string
+      default: "https://github.com/Nezha99-8/ci-cd-final-project"
+    - name: branch
+      description: The git branch
+      type: string
+      default: "main"
+    - name: app-name
+      description: Application name for deployment
+      type: string
+      default: "my-app"
+    - name: build-image
+      description: Image to deploy
+      type: string
+      default: "python:3.9-slim"
+  
+  workspaces:
+    - name: output
+      description: Shared workspace for pipeline tasks
+
+  tasks:
+    # Task 1: Cleanup
+    - name: cleanup
+      taskRef:
+        name: cleanup
+      workspaces:
+        - name: source
+          workspace: output
+
+    # Task 2: Git Clone
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.branch)
+      workspaces:
+        - name: output
+          workspace: output
+      runAfter:
+        - cleanup
+
+    # Task 3: Flake8 Linting
+    - name: flake8-lint
+      taskRef:
+        name: flake8
+      params:
+        - name: args
+          value: "service --count --select=E9,F63,F7,F82 --show-source --statistics"
+      workspaces:
+        - name: source
+          workspace: output
+      runAfter:
+        - git-clone
+
+    # Task 4: Nose Tests
+    - name: nose-tests
+      taskRef:
+        name: nose
+      params:
+        - name: args
+          value: "-v --with-spec --spec-color --with-coverage --cover-package=app"
+      workspaces:
+        - name: source
+          workspace: output
+      runAfter:
+        - flake8-lint
+
+    # Task 5: Buildah (Build Container Image)
+    - name: build-image
+      taskRef:
+        name: buildah
+      params:
+        - name: IMAGE
+          value: "image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/$(params.app-name):latest"
+      workspaces:
+        - name: source
+          workspace: output
+      runAfter:
+        - nose-tests
+
+    # Task 6: Deploy Application
+    - name: deploy
+      taskRef:
+        name: openshift-client
+      params:
+        - name: SCRIPT
+          value: |
+            oc create deployment $(params.app-name) --image=$(params.build-image) --dry-run=client -o yaml | oc apply -f -
+      runAfter:
+        - build-image
