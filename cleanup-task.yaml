@@ -1,0 +1,14 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: cleanup
+spec:
+  workspaces:
+    - name: output
+  steps:
+    - name: cleanup
+      image: registry.access.redhat.com/ubi8/ubi-minimal
+      script: |
+        #!/usr/bin/env bash
+        echo "Cleaning workspace..."
+        rm -rf $(workspaces.output.path)/*
